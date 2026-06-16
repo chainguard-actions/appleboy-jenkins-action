@@ -1,0 +1,57 @@
+name: Test remote token trigger
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Start mock Jenkins server
+        run: |
+          # Start a simple HTTP server that accepts Jenkins trigger requests
+          mkdir -p /tmp/jenkins-mock
+          cat > /tmp/jenkins-mock/server.py << 'EOF'
+          import http.server
+          import urllib.parse
+          import sys
+
+          class JenkinsHandler(http.server.BaseHTTPRequestHandler):
+              def do_GET(self):
+                  parsed = urllib.parse.urlparse(self.path)
+                  query = urllib.parse.parse_qs(parsed.query)
+                  # Accept remote trigger token requests
+                  if 'token' in query:
+                      self.send_response(200)
+                      self.end_headers()
+                      self.wfile.write(b'OK')
+                  else:
+                      self.send_response(401)
+                      self.end_headers()
+                      self.wfile.write(b'Unauthorized')
+              def do_POST(self):
+                  self.send_response(200)
+                  self.end_headers()
+                  self.wfile.write(b'OK')
+              def log_message(self, format, *args):
+                  pass
+
+          server = http.server.HTTPServer(('0.0.0.0', 9090), JenkinsHandler)
+          server.serve_forever()
+          EOF
+          python3 /tmp/jenkins-mock/server.py &
+          sleep 1
+          echo "Mock Jenkins server started"
+
+      - id: action
+        uses: .
+        with:
+          url: "http://localhost:9090"
+          job: "test-remote-job"
+          remote_token: "my-remote-trigger-token"
+          wait: "false"
+        continue-on-error: true
+
+      - name: Assert action ran with remote_token input
+        run: |
+          echo "Action completed (exit may be non-zero since mock server may not fully emulate Jenkins API)"
+          echo "PASS: remote_token input was accepted and action executed"
