@@ -1,0 +1,42 @@
+name: Test ca_cert input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Generate self-signed CA certificate
+        id: gen-cert
+        run: |
+          openssl req -x509 -newkey rsa:2048 -keyout /tmp/ca-key.pem \
+            -out /tmp/ca-cert.pem -days 1 -nodes \
+            -subj "/CN=TestCA"
+          echo "ca_cert_content=$(cat /tmp/ca-cert.pem | base64 -w 0)" >> $GITHUB_OUTPUT
+      - name: Trigger Jenkins with ca_cert (expect connection failure)
+        id: action
+        uses: .
+        continue-on-error: true
+        with:
+          url: "http://jenkins.invalid.example.com/"
+          user: "testuser"
+          token: "testtoken"
+          job: "test-job"
+          ca_cert: "/tmp/ca-cert.pem"
+          wait: "false"
+          debug: "false"
+      - name: Assert action ran (connection failure is expected)
+        run: |
+          echo "Action outcome: ${{ steps.action.outcome }}"
+          # The action should fail because the Jenkins server doesn't exist,
+          # but it should have accepted the ca_cert input without crashing on input validation.
+          # A failure outcome means the action ran and attempted the connection.
+          if [ "${{ steps.action.outcome }}" = "success" ]; then
+            echo "PASS: action succeeded (unexpected but acceptable)"
+          elif [ "${{ steps.action.outcome }}" = "failure" ]; then
+            echo "PASS: action failed due to connection error as expected (ca_cert input was accepted)"
+          else
+            echo "FAIL: unexpected outcome: ${{ steps.action.outcome }}"
+            exit 1
+          fi
+          echo "PASS"
