@@ -1,15 +1,153 @@
-# appleboy/jenkins-action
+# 🚀 Trigger Jenkins Job for GitHub Actions
 
-Triggering Jenkins Job through the API
+[![Trivy Security Scan](https://github.com/appleboy/jenkins-action/actions/workflows/trivy.yml/badge.svg)](https://github.com/appleboy/jenkins-action/actions/workflows/trivy.yml)
 
-Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/appleboy/jenkins-action](https://github.com/appleboy/jenkins-action).
+[GitHub Action](https://github.com/features/actions) for trigger [jenkins](https://jenkins.io/) jobs.
 
-## Versions
+![jenkins](./images/trigger-jenkins.png)
 
-| Version | Tag | Upstream commit |
-|---------|-----|-----------------|
-| v1.3.0 | [`v1.3.0`](https://github.com/chainguard-actions/appleboy-jenkins-action/tree/v1.3.0) | [`d927f73`](https://github.com/appleboy/jenkins-action/commit/d927f73628a53d80d8dfdaf11af56bf52b595250) |
-| v1.3.1 | [`v1.3.1`](https://github.com/chainguard-actions/appleboy-jenkins-action/tree/v1.3.1) | [`f0c5e85`](https://github.com/appleboy/jenkins-action/commit/f0c5e854b1f6a5107293f3759323d55b8d3dad85) |
+## Usage
+
+Trigger New Jenkins Job.
+
+```yaml
+name: trigger jenkins job
+on: [push]
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: trigger single Job
+      uses: appleboy/jenkins-action@master
+      with:
+        url: "http://example.com"
+        user: "example"
+        token: ${{ secrets.TOKEN }}
+        job: "foobar"
+```
+
+## Jenkins Setting
+
+Setup the Jenkins server using the docker command:
+
+```sh
+docker run \
+  --name jenkins-docker \
+  -d --restart always \
+  -p 8080:8080 -p 50000:50000 \
+  -v /data/jenkins:/var/jenkins_home \
+  jenkins/jenkins:lts
+```
+
+Please make sure that you create the `/data/jenkins` before starting the Jenkins.
+
+Go to user profile and click on `Configure`:
+
+![jenkins](./images/user-api-token.png)
+
+## Example
+
+Trigger multiple jenkins job:
+
+```yaml
+- name: trigger multiple Job
+  uses: appleboy/jenkins-action@v1
+  with:
+    url: http://example.com
+    user: example
+    token: ${{ secrets.TOKEN }}
+    job: job_1,job_2
+```
+
+Trigger jenkins job with parameters:
+
+```yaml
+- name: trigger Job with parameters
+  uses: appleboy/jenkins-action@v1
+  with:
+    url: http://example.com
+    user: example
+    token: ${{ secrets.TOKEN }}
+    job: job_1
+    parameters: |
+      ENVIRONMENT=production
+      VERSION=1.0.0
+      COMMIT_SHA=${{ github.sha }}
+      BRANCH=${{ github.ref_name }}
+```
+
+Trigger jenkins job using remote token:
+
+```yaml
+- name: trigger Job with remote token
+  uses: appleboy/jenkins-action@v1
+  with:
+    url: http://example.com
+    remote_token: ${{ secrets.REMOTE_TOKEN }}
+    job: job_1
+```
+
+Wait for job completion with custom timeout:
+
+```yaml
+- name: trigger Job and wait for completion
+  uses: appleboy/jenkins-action@v1
+  with:
+    url: http://example.com
+    user: example
+    token: ${{ secrets.TOKEN }}
+    job: job_1
+    wait: true
+    poll_interval: 5s
+    timeout: 60m
+```
+
+Use custom CA certificate for self-signed SSL:
+
+```yaml
+- name: trigger Job with custom CA certificate
+  uses: appleboy/jenkins-action@v1
+  with:
+    url: https://jenkins.example.com
+    user: example
+    token: ${{ secrets.TOKEN }}
+    job: job_1
+    ca_cert: ${{ secrets.CA_CERT }}
+```
+
+You can also specify a file path or HTTP URL for the CA certificate:
+
+```yaml
+- name: trigger Job with CA certificate from file
+  uses: appleboy/jenkins-action@v1
+  with:
+    url: https://jenkins.example.com
+    user: example
+    token: ${{ secrets.TOKEN }}
+    job: job_1
+    ca_cert: /path/to/ca-certificate.pem
+```
+
+## Input variables
+
+| Parameter      | Required      | Default | Description                                                          |
+| -------------- | ------------- | ------- | -------------------------------------------------------------------- |
+| url            | Yes           |         | Jenkins base URL (e.g., `http://jenkins.example.com/`)               |
+| user           | Conditional\* |         | Jenkins username                                                     |
+| token          | Conditional\* |         | Jenkins API token                                                    |
+| remote_token   | Conditional\* |         | Jenkins remote trigger token                                         |
+| job            | Yes           |         | Jenkins job name(s) - can specify multiple                           |
+| parameters     | No            |         | Build parameters in multi-line `key=value` format (one per line)     |
+| insecure       | No            | `false` | Allow insecure SSL connections                                       |
+| wait           | No            | `false` | Wait for job completion                                              |
+| poll_interval  | No            | `10s`   | Interval between status checks                                       |
+| timeout        | No            | `30m`   | Maximum time to wait for job completion                              |
+| debug          | No            | `false` | Enable debug mode to show detailed parameter information             |
+| ca_cert        | No            |         | Custom CA certificate (PEM content, file path, or HTTP URL)          |
+
+> \* **Authentication**: Either `user` + `token` OR `remote_token` is required.
 
 ## Privacy
 
