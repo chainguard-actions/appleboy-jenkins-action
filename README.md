@@ -9,6 +9,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
 | v1.3.0 | [`v1.3.0`](https://github.com/chainguard-actions/appleboy-jenkins-action/tree/v1.3.0) | [`d927f73`](https://github.com/appleboy/jenkins-action/commit/d927f73628a53d80d8dfdaf11af56bf52b595250) |
+| v1.3.1 | [`v1.3.1`](https://github.com/chainguard-actions/appleboy-jenkins-action/tree/v1.3.1) | [`f0c5e85`](https://github.com/appleboy/jenkins-action/commit/f0c5e854b1f6a5107293f3759323d55b8d3dad85) |
 
 ## Privacy
 
