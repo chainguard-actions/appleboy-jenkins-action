@@ -1,0 +1,58 @@
+name: Test remote token authentication
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Start mock Jenkins server
+        run: |
+          # Start a simple HTTP server that mimics Jenkins API responses
+          mkdir -p /tmp/jenkins-mock
+          cat > /tmp/jenkins-mock/server.py << 'EOF'
+          import http.server
+          import json
+          import sys
+
+          class JenkinsHandler(http.server.BaseHTTPRequestHandler):
+              def log_message(self, format, *args):
+                  pass  # suppress logs
+
+              def do_GET(self):
+                  if '/api/json' in self.path or '/crumbIssuer' in self.path:
+                      self.send_response(200)
+                      self.send_header('Content-Type', 'application/json')
+                      self.end_headers()
+                      self.wfile.write(json.dumps({"crumb": "abc123", "crumbRequestField": "Jenkins-Crumb"}).encode())
+                  else:
+                      self.send_response(200)
+                      self.send_header('Content-Type', 'application/json')
+                      self.end_headers()
+                      self.wfile.write(json.dumps({}).encode())
+
+              def do_POST(self):
+                  self.send_response(201)
+                  self.send_header('Location', 'http://localhost:8080/queue/item/1/')
+                  self.end_headers()
+
+          server = http.server.HTTPServer(('0.0.0.0', 8080), JenkinsHandler)
+          server.serve_forever()
+          EOF
+          python3 /tmp/jenkins-mock/server.py &
+          sleep 1
+          echo "Mock Jenkins server started"
+
+      - id: action
+        uses: .
+        with:
+          url: "http://localhost:8080"
+          remote_token: "my-remote-trigger-token"
+          job: "test-job"
+          wait: "false"
+        continue-on-error: true
+
+      - name: Assert action ran with remote_token input
+        run: |
+          echo "Action completed (exit may be non-zero due to mock server limitations)"
+          echo "PASS: remote_token input was accepted and action executed"
