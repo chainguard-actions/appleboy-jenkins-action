@@ -1,4 +1,4 @@
-name: Test Jenkins trigger with custom CA certificate
+name: Test ca_cert input with unreachable Jenkins URL
 on:
   workflow_dispatch:
 jobs:
@@ -6,29 +6,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Trigger Jenkins job with custom CA cert (expect failure - no Jenkins server)
+      - name: Run action with ca_cert against unreachable Jenkins URL (expect failure)
         id: action
         uses: .
         with:
-          url: "https://localhost:8443"
-          user: "admin"
-          token: "test-token"
-          job: "my-secure-job"
+          url: "https://jenkins.invalid.example.com:8443/"
+          user: "testuser"
+          token: "testtoken"
+          job: "test-job"
+          wait: "false"
           ca_cert: |
             -----BEGIN CERTIFICATE-----
             MIICpDCCAYwCCQDU+pQ4pHgSpDANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAls
             b2NhbGhvc3QwHhcNMjMwMTAxMDAwMDAwWhcNMjQwMTAxMDAwMDAwWjAUMRIwEAYD
             VQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC7
+            o4qne60TB3pOBmcGBMDFGFMBMDFGFMBMDFGFMBMDFGFMBMDFGFMBMDFGFMBMDFG
             -----END CERTIFICATE-----
-          insecure: "false"
         continue-on-error: true
-      - name: Assert action failed due to connection error
+      - name: Assert action failed due to unreachable URL (ca_cert input exercised)
         env:
           OUTCOME: ${{ steps.action.outcome }}
         run: |
           echo "outcome: $OUTCOME"
           if [ "$OUTCOME" != "failure" ]; then
-            echo "FAIL: expected action to fail when Jenkins is unreachable, got outcome=$OUTCOME"
+            echo "FAIL: expected action to fail when Jenkins URL is unreachable, got: $OUTCOME"
             exit 1
           fi
-          echo "PASS: action correctly failed when Jenkins is unreachable (with ca_cert input)"
+          echo "PASS: action correctly failed when Jenkins URL is unreachable (ca_cert input was passed)"
