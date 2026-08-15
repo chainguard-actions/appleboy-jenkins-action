@@ -1,4 +1,4 @@
-name: Test basic connection failure
+name: Test remote trigger token
 on:
   workflow_dispatch:
 jobs:
@@ -6,13 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Run action (expect failure - no Jenkins server)
+      - name: Run action with remote trigger token (expect failure - no Jenkins server)
         id: action
         uses: .
         with:
           url: "http://127.0.0.1:19999/"
-          user: "admin"
-          token: "fake-api-token"
+          remote_token: "my-remote-trigger-token"
           job: "test-job"
         continue-on-error: true
       - name: Assert action failed due to connection (not config error)
@@ -21,7 +20,7 @@ jobs:
         run: |
           echo "outcome: $OUTCOME"
           # The action should fail because Jenkins is unreachable,
-          # not because of missing/invalid inputs.
+          # not because of invalid inputs or the remote_token being rejected.
           if [ "$OUTCOME" = "failure" ]; then
             echo "PASS: action failed as expected (no Jenkins server available)"
           else
