@@ -1,4 +1,4 @@
-name: Test remote trigger token authentication
+name: Test invalid Jenkins URL (connection refused)
 on:
   workflow_dispatch:
 jobs:
@@ -7,16 +7,17 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Run action with remote trigger token (expect failure - no Jenkins)
+      - name: Run action with unreachable Jenkins URL (expect failure)
         id: action
         uses: .
         continue-on-error: true
         with:
-          url: "http://127.0.0.1:19996/"
-          remote_token: "my-remote-trigger-token"
+          url: "http://127.0.0.1:19999/"
+          user: "admin"
+          token: "fake-token"
           job: "test-job"
 
-      - name: Assert action failed gracefully with remote token auth
+      - name: Assert action failed due to unreachable URL
         env:
           OUTCOME: ${{ steps.action.outcome }}
         run: |
@@ -25,4 +26,4 @@ jobs:
             echo "FAIL: expected action to fail when Jenkins URL is unreachable, got: $OUTCOME"
             exit 1
           fi
-          echo "PASS: action correctly failed when Jenkins URL is unreachable (remote_token accepted)"
+          echo "PASS: action correctly failed when Jenkins URL is unreachable"
